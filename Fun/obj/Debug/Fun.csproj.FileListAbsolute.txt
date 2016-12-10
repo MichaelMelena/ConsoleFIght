@@ -1,1 +1,7 @@
 c:\users\michael melena\documents\visual studio 2015\Projects\Fun\Fun\bin\Debug\Fun.exe.config
+C:\Users\Melena\Documents\Visual Studio 2015\Projects\Fun\Fun\bin\Debug\Fun.exe.config
+C:\Users\Melena\Documents\Visual Studio 2015\Projects\Fun\Fun\bin\Debug\Fun.exe
+C:\Users\Melena\Documents\Visual Studio 2015\Projects\Fun\Fun\bin\Debug\Fun.pdb
+C:\Users\Melena\Documents\Visual Studio 2015\Projects\Fun\Fun\obj\Debug\Fun.csprojResolveAssemblyReference.cache
+C:\Users\Melena\Documents\Visual Studio 2015\Projects\Fun\Fun\obj\Debug\Fun.exe
+C:\Users\Melena\Documents\Visual Studio 2015\Projects\Fun\Fun\obj\Debug\Fun.pdb
