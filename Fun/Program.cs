@@ -25,6 +25,7 @@ namespace Fun
 
         protected static Random Dice = new Random();
         protected int MaxHP { get; set; }
+        protected int Level { get; set; }
         protected int CurrentHP { get; set; }
         protected string Name { get; set; }
         protected int Offense { get; set; }
@@ -44,6 +45,7 @@ namespace Fun
             this.Defense = 0;
             this.Offense = 0;
             this.popis = "Character";
+            this.Level = 0;
             
         
         }
@@ -55,6 +57,7 @@ namespace Fun
             this.Name = name;
             this.Defense = Defense;
             this.Offense = offense;
+            this.Level = 0;
            
         }
 
@@ -122,6 +125,10 @@ namespace Fun
                 CurentHitPoints();
             }
         }
+        public virtual void onEndOfRound(object source, CharacterEventArgs args)
+        {
+
+        }
         protected int ThrowDice()
         {
           return Dice.Next(1, 10);
@@ -149,20 +156,69 @@ namespace Fun
     }
     class Warior:Character
     {
-        int LastTakenDamage { get; set; }
+        protected int LastTakenDamage { get; set; }
+        protected byte  BandageCooldown { get; set; }
+        protected byte BandageCountdown { get; set; }
+
+        protected byte StrongAttackCooldown { get; set; }
+        protected byte StrongAttackCountdown { get; set; }
+
         public Warior(string name, int maxHp, int offense, int defense) : base(name, maxHp, offense, defense)
         {
             this.popis = "Warior";
+
             this.LastTakenDamage = 0;
+
+            this.BandageCooldown = 3;
+            this.BandageCountdown = 0;
+
+            this.StrongAttackCooldown = 4;
+            this.StrongAttackCountdown = 0;
+
         }
-        public virtual void Bandage()
+        protected virtual void Bandage()
         {
-            if (this.CurrentHP + LastTakenDamage < this.MaxHP)
+
+
+            if (BandageCountdown == 0)
             {
                 this.CurrentHP += LastTakenDamage;
-                Console.WriteLine(string.Format("{0} -- {1} -- healed himself for {2} hitpoints",this.popis,this.Name,this.LastTakenDamage));
+                Console.WriteLine(string.Format("{0} -- {1} -- healed himself for {2} hitpoints", this.popis, this.Name, this.LastTakenDamage));
                 this.CurentHitPoints();
                 this.HealChanged(this.CurrentHP);
+                this.BandageCountdown = this.BandageCooldown;
+                this.LastTakenDamage = 0;
+            }
+            else if (BandageCountdown > 0)
+            {
+                Console.WriteLine(string.Format("{0} -- {1} -- can´t use Bandages for {2} rounds", this.popis, this.Name, this.BandageCountdown));
+            }
+
+        }
+        
+        protected virtual void StrongAttack()
+        {
+            if( BandageCountdown==0)
+            {
+                this.OffenseDiecThrow = ThrowDice();
+                Console.WriteLine(string.Format("{0} -- {1} -- used Strong attack for {2} damage", this.popis, this.Name, this.Offense + this.Level + OffenseDiecThrow));
+                OnAttacking((Offense +this.Level+ OffenseDiecThrow));
+            }
+            else if(StrongAttackCountdown>0)
+            {
+                Console.WriteLine(string.Format("{0} -- {1} -- can´t use StrongAttack for {2} rounds", this.popis, this.Name, StrongAttackCountdown));
+            }
+           
+        }
+        public override void onEndOfRound(object source,CharacterEventArgs args)
+        {
+            if(BandageCountdown>0)
+            {
+                BandageCountdown--;
+            }
+            if(StrongAttackCountdown>0)
+            {
+                StrongAttackCountdown--;
             }
         }
         public override void Defend(object source, CharacterEventArgs args)
@@ -172,13 +228,14 @@ namespace Fun
             base.Defend(source ,args);
             if (args.Attack > this.Defense+base.DefenseDiceThrow)
             {
-                this.LastTakenDamage = (args.Attack - this.Defense+base.DefenseDiceThrow);
+                this.LastTakenDamage = (args.Attack - (this.Defense+base.DefenseDiceThrow));
             }
         }
         public override void MoveHint()
         {
             base.MoveHint();
-            Console.WriteLine("-b- to use bandages!");
+            Console.WriteLine(string.Format("-b- to use bandages!  cooldown {0} rounds",this.BandageCooldown));
+            Console.WriteLine(string.Format("-s- to use Strong attack! cooldown {0} rounds", this.StrongAttackCooldown));
         }
         public override void PlayerMove()
         {
@@ -187,6 +244,10 @@ namespace Fun
             {
                 Bandage();
                 
+            }
+            if(base.ChoosenOption.Key==ConsoleKey.S)
+            {
+                StrongAttack();
             }
             
         }
@@ -199,6 +260,7 @@ namespace Fun
         public string Name { get; set; }
         public int Healt { get; set; }
         public int Attack { get; set; }
+        public int Round { get; set; }
 
     }
     class Arena
@@ -207,17 +269,33 @@ namespace Fun
         protected bool FightOn { get; set; }
         protected Character Player { get; set; }
         protected Character Enemy { get; set; }
-        
+    
+       
+
+        public event EventHandler<CharacterEventArgs> EndOfROund;
+        protected virtual void RoundEnded(int round)
+        {
+            if(EndOfROund!=null)
+            {
+
+                EndOfROund(this, new CharacterEventArgs() { Round = round});
+                round++;
+            }
+        }
         public Arena(Character player, Character ennemy)
         {
             this.Player = player;
             this.Enemy = ennemy;
+
             FightOn = true;
-            player.Attacking += Enemy.Defend;
-            Enemy.Attacking += Player.Defend;
+
+            this.Player.Attacking += Enemy.Defend;
+            this.Enemy.Attacking += Player.Defend;
             this.Player.CharacterDeath += OnCharacterDeath;
             this.Enemy.CharacterDeath += OnCharacterDeath;
-
+            this.EndOfROund += this.Player.onEndOfRound;
+            this.EndOfROund += this.Enemy.onEndOfRound;
+            
         }
         public void Fight()
         {
@@ -226,7 +304,9 @@ namespace Fun
                 Player.MoveHint();
                 Player.PlayerMove();
                 Enemy.Attack();
-                Console.WriteLine();
+                Console.WriteLine("-------------------------------------------------------------");
+                RoundEnded(Round);
+               
                 
             }
 
