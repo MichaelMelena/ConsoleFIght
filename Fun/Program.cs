@@ -34,6 +34,7 @@ namespace Fun
         protected ConsoleKeyInfo ChoosenOption { get; set; }
         protected int DefenseDiceThrow{ get; set; }
         protected int OffenseDiecThrow { get; set; }
+        protected Dictionary<ConsoleKey,int> AbillityPriority { get; set; }
       
        
 
@@ -46,7 +47,7 @@ namespace Fun
             this.Offense = 0;
             this.popis = "Character";
             this.Level = 0;
-            
+            this.AbillityPriority = new Dictionary<ConsoleKey, int>();
         
         }
         public Character(string name, int maxHp,int offense,int defense)
@@ -58,8 +59,48 @@ namespace Fun
             this.Defense = Defense;
             this.Offense = offense;
             this.Level = 0;
-           
+            this.AbillityPriority = new Dictionary<ConsoleKey, int>();
+
         }
+        protected virtual void FillAbillityPriority()
+        {
+            this.AbillityPriority.Add(ConsoleKey.A, 1);
+
+        }
+        protected ConsoleKey HighestPriorityMove()
+        {
+            
+            int priority = -1;
+
+            foreach (KeyValuePair<ConsoleKey, int> item in this.AbillityPriority)
+            {
+               if(priority==-1)
+                {
+                    priority = item.Value;
+                }
+               else if(item.Value >0)
+                {
+                    if (priority < item.Value)
+                    {
+                        priority = item.Value;
+                    }
+                }
+            }
+            foreach (KeyValuePair<ConsoleKey, int> item in this.AbillityPriority)
+            {
+
+                if (item.Value == priority)
+                {
+                    return item.Key;
+
+                }
+
+            }
+            throw new Exception();
+        }
+        
+
+
 
 
         public delegate void characterDeath(object source, CharacterEventArgs args);
@@ -143,10 +184,12 @@ namespace Fun
             Console.WriteLine("-a- for attack!");
         }
 
-        public virtual void PlayerMove()
+        public virtual void PlayerMove(ConsoleKey chooseOption=ConsoleKey.NoName )
         {
-            
-            ChoosenOption = Console.ReadKey();
+            if (chooseOption != ConsoleKey.NoName)
+            {
+                ChoosenOption = Console.ReadKey();
+            }
             if(ChoosenOption.Key == ConsoleKey.A)
             {
                 Attack();
@@ -176,6 +219,13 @@ namespace Fun
             this.StrongAttackCountdown = 0;
 
         }
+
+        protected override void FillAbillityPriority()
+        {
+            base.FillAbillityPriority();
+            base.AbillityPriority.Add(ConsoleKey.B, 2);
+            base.AbillityPriority.Add(ConsoleKey.S, 4);
+        }
         protected virtual void Bandage()
         {
 
@@ -187,6 +237,7 @@ namespace Fun
                 this.CurentHitPoints();
                 this.HealChanged(this.CurrentHP);
                 this.BandageCountdown = this.BandageCooldown;
+                this.AbillityPriority[ConsoleKey.B]= 0;
                 this.LastTakenDamage = 0;
             }
             else if (BandageCountdown > 0)
@@ -216,6 +267,10 @@ namespace Fun
             {
                 BandageCountdown--;
             }
+            if(BandageCountdown==0)
+            {
+                this.AbillityPriority[ConsoleKey.B] = 3;
+            }
             if(StrongAttackCountdown>0)
             {
                 StrongAttackCountdown--;
@@ -237,7 +292,7 @@ namespace Fun
             Console.WriteLine(string.Format("-b- to use bandages!  cooldown {0} rounds",this.BandageCooldown));
             Console.WriteLine(string.Format("-s- to use Strong attack! cooldown {0} rounds", this.StrongAttackCooldown));
         }
-        public override void PlayerMove()
+        public override void PlayerMove(ConsoleKey chooseOption = ConsoleKey.NoName)
         {
             base.PlayerMove();
             if(base.ChoosenOption.Key ==ConsoleKey.B)
@@ -295,6 +350,7 @@ namespace Fun
             this.Enemy.CharacterDeath += OnCharacterDeath;
             this.EndOfROund += this.Player.onEndOfRound;
             this.EndOfROund += this.Enemy.onEndOfRound;
+            
             
         }
         public void Fight()
